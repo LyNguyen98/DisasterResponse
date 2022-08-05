@@ -56,7 +56,7 @@ def display_result(y_pred, y_test):
     #convert array to dataframe
     y_pred_df = pd.DataFrame(y_pred, columns = y_test.columns)
     for col in y_test.columns:
-        print("category: ", col)
+        print("Category column name: ", col)
         print(classification_report(y_test[col], y_pred_df[col]))
 
 
