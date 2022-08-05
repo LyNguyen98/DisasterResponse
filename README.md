@@ -29,9 +29,9 @@ This is my second project to complete the Nanodegree course in Data science prov
   
 **5.	Tutorial**
 
-  •	cd to the data folder and run cmd: python data/process_data.py data/disaster_messages.csv data/disaster_categories.csv
+  •	run cmd: python data/process_data.py data/disaster_messages.csv data/disaster_categories.csv
   
-  •	cd to the model folder and run cmd: python models/train_classifier.py data/DisasterResponse.db
+  •	run cmd: python models/train_classifier.py data/DisasterResponse.db
   
   •	cd to the apps folder and run cmd: python run.py
   
