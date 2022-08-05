@@ -1,4 +1,4 @@
-# AirbnbSeattle
+# Disaster Response
 
 **1. About the project**
 
