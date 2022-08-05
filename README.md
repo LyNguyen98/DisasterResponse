@@ -36,7 +36,7 @@ This is my second project to complete the Nanodegree course in Data science prov
   •	cd to the apps folder and run cmd: python run.py
   
 
-**5.	Acknowledgement:*
+**6.	Acknowledgement:**
 
   •	Author: Ly Nguyen
   
