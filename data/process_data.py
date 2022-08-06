@@ -5,6 +5,12 @@ from sqlalchemy import create_engine
 
 
 def load_data(messages_filepath, categories_filepath):
+    '''
+    Load data 
+    
+    And return a dataframe
+    '''
+    
     messages = pd.read_csv(messages_filepath)
     categories = pd.read_csv(categories_filepath)
     df = messages.merge(categories, how = 'inner', on = 'id')
@@ -12,6 +18,11 @@ def load_data(messages_filepath, categories_filepath):
 
 
 def clean_data(df):
+    '''
+    Clean data
+    and return a cleaned dataframe
+    '''
+    
     categories = df['categories'].str.split(';', expand = True)
     
     row = categories.iloc[0]
@@ -29,6 +40,9 @@ def clean_data(df):
     df.drop('categories', axis = 1, inplace = True)
     df = df.merge(categories, left_index = True, right_index = True)
     
+    #convert related columns to binary 
+    df['related'] = df['related'].apply(lambda x: 1 if x==2 else x)
+    
     #drop duplicates
     df.drop_duplicates(keep = 'first', inplace = True)
     
@@ -36,21 +50,26 @@ def clean_data(df):
     
 
 
-def save_data(df):
-    engine = create_engine('sqlite:///data/DisasterResponse.db')
+def save_data(df, database_filepath):
+    
+    '''
+    Save data
+    '''
+    
+    engine = create_engine('sqlite:///'+database_filepath)
     df.to_sql('DisasterResponse', engine, index=False, if_exists='replace')  
 
 
 def main():
-    if len(sys.argv) == 3:
+    if len(sys.argv) == 4:
 
-        messages_filepath, categories_filepath= sys.argv[1:]
+        messages_filepath, categories_filepath, database_filepath= sys.argv[1:]
 
         df = load_data(messages_filepath, categories_filepath)
 
         df = clean_data(df)
         
-        save_data(df)
+        save_data(df, database_filepath)
         
         print('Cleaned data saved to database!')
     
@@ -64,4 +83,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
