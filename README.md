@@ -48,7 +48,7 @@ This is my second project to complete the Nanodegree course in Data science prov
 
   •	run cmd: python data/process_data.py data/disaster_messages.csv data/disaster_categories.csv data/DisasterResponse.db
   
-  •	run cmd: python models/train_classifier.py data/DisasterResponse.db
+  •	run cmd: python models/train_classifier.py data/DisasterResponse.db models/classifier.pkl
   
   •	cd to the apps folder and run cmd: python run.py
   
