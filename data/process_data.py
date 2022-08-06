@@ -1,85 +1,109 @@
 import sys
-import pandas as pd
-from sqlalchemy import create_engine
+import pandas as pd 
+import numpy as np
+import nltk
+import re
+import pickle
+from nltk.tokenize import word_tokenize
+from nltk.stem import WordNetLemmatizer
+nltk.download(['punkt', 'wordnet'])
+from sqlalchemy import create_engine 
+from sklearn.pipeline import Pipeline
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.feature_extraction.text import TfidfTransformer, CountVectorizer
+from sklearn.metrics import classification_report
+from sklearn.metrics import confusion_matrix
 
 
-
-def load_data(messages_filepath, categories_filepath):
+def load_data(database_filepath):
     '''
-    Load data 
-    
-    And return a dataframe
-    '''
-    
-    messages = pd.read_csv(messages_filepath)
-    categories = pd.read_csv(categories_filepath)
-    df = messages.merge(categories, how = 'inner', on = 'id')
-    return df
-
-
-def clean_data(df):
-    '''
-    Clean data
-    and return a cleaned dataframe
-    '''
-    
-    categories = df['categories'].str.split(';', expand = True)
-    
-    row = categories.iloc[0]
-    category_colnames = row.str.split('-').str[0]
-    categories.columns = category_colnames
-    
-    for column in categories:
-    # set each value to be the last character of the string
-        categories[column] = categories[column].str.split('-').str[1]
-    
-    # convert column from string to numeric
-        categories[column] = categories[column].astype('int')
-     
-    #Drop category columns and concatnate with category table
-    df.drop('categories', axis = 1, inplace = True)
-    df = df.merge(categories, left_index = True, right_index = True)
-    
-    #convert related columns to binary 
-    df['related'] = df['related'].apply(lambda x: 1 if x==2 else x)
-    
-    #drop duplicates
-    df.drop_duplicates(keep = 'first', inplace = True)
-    
-    return df
-    
-
-
-def save_data(df, database_filepath):
-    
-    '''
-    Save data
+    Load data from saved database
+    database_filepath   path of saved database
     '''
     
     engine = create_engine('sqlite:///'+database_filepath)
-    df.to_sql('DisasterResponse', engine, index=False, if_exists='replace')  
+    df = pd.read_sql_table('DisasterResponse',engine)
+    X = df['message']
+    y = df.loc[:,'related':]
+    return X, y
+
+
+def tokenize(text):
+    '''
+    Tokenize and Lemmatize text
+    '''
+    #find url text and replace with 'urlplaceholder'
+    url_regex = 'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
+    detect_url = re.findall(url_regex, text)
+    for url in detect_url:
+        text = text.replace(url, 'urlplaceholder')
+    
+    #Tokenize and lemmatizer
+    tokens = word_tokenize(text)
+    lemmatizer = WordNetLemmatizer()
+    clean_tokens = []
+    for tok in tokens:
+        clean_tok = lemmatizer.lemmatize(tok).lower().strip()
+        clean_tokens.append(clean_tok)
+    return clean_tokens
+
+
+def build_model():
+    '''
+    Building pipeline
+    
+    And return a pipeline
+    '''
+    pipeline = Pipeline([
+        ('vect', CountVectorizer(tokenizer=tokenize)),
+        ('tfidf', TfidfTransformer()),
+        ('clf', RandomForestClassifier())
+    ])
+    return pipeline
+
+def display_result(y_pred, y_test):
+    '''
+    Show model labels
+    
+    and accuracy
+    '''
+    print('Labels: ', np.unique(y_pred))
+    #convert array to dataframe
+    y_pred_df = pd.DataFrame(y_pred, columns = y_test.columns)
+    for col in y_test.columns:
+        print("Category column name: ", col)
+        print(classification_report(y_test[col], y_pred_df[col]))
+
+
+def save_model(pipeline, model_name):
+    '''
+    Save model
+    '''
+    pickle.dump(pipeline, open(model_name, 'wb'))
 
 
 def main():
-    if len(sys.argv) == 4:
+    #load data
+    if len(sys.argv) == 3:
 
-        messages_filepath, categories_filepath, database_filepath= sys.argv[1:]
-
-        df = load_data(messages_filepath, categories_filepath)
-
-        df = clean_data(df)
+        database_filepath, model_name= sys.argv[1:]
+        X, y = load_data(database_filepath)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state = 42)
         
-        save_data(df, database_filepath)
+        #build & fit model
+        model = build_model()
+        model.fit(X_train, y_train)
         
-        print('Cleaned data saved to database!')
-    
+        #display model result
+        y_pred = model.predict(X_test)
+        display_result(y_pred, y_test)
+
+        #save model
+        save_model(model,model_name)
     else:
-        print('Please provide the filepaths of the messages and categories '\
-              'datasets as the first and second argument respectively, as '\
-              'well as the filepath of the database to save the cleaned data '\
-              'to as the third argument. \n\nExample: python process_data.py '\
-              'disaster_messages.csv disaster_categories.csv '\
-              'DisasterResponse.db')
+        print('Please provide enough filepath')
+
 
 if __name__ == '__main__':
     main()
